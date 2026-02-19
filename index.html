@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基建拓荒 · 合成石与EXP</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            user-select: none;
+        }
+        body {
+            background: #0b0e14;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+        .game-container {
+            max-width: 1400px;
+            width: 100%;
+            background: #1a1f2b;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            padding: 20px;
+            border: 1px solid #2f3747;
+        }
+        /* 顶部资源栏 */
+        .resource-bar {
+            background: #242b38;
+            border-radius: 60px;
+            padding: 12px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px 36px;
+            align-items: center;
+            border: 1px solid #3e485a;
+            box-shadow: inset 0 2px 5px #0f1219;
+        }
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .resource-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2f3b4b;
+            border: 1px solid #5e6f88;
+        }
+        .exp { color: #b2e63e; text-shadow: 0 0 8px #5f9e2b; }
+        .synth-stone { color: #ffd966; text-shadow: 0 0 8px #b8860b; }
+        .player-level { background: #2d3748; padding: 4px 20px; border-radius: 40px; border: 1px solid #5f6b7f; }
+        .power-badge { background: #1e2a36; padding: 4px 18px; border-radius: 40px; border: 1px solid #3f8ab3; color: #7ad0ff; }
+        /* 分页标签 */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tab {
+            background: #262e3c;
+            color: #a3b3d1;
+            padding: 12px 32px;
+            border-radius: 40px 40px 0 0;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #384153;
+            border-bottom: none;
+            transition: 0.2s;
+        }
+        .tab.active {
+            background: #2f3b4f;
+            color: white;
+            border-color: #6e7f9e;
+            transform: translateY(-3px);
+        }
+        .page {
+            background: #1e2532;
+            border-radius: 0 24px 24px 24px;
+            padding: 24px;
+            border: 1px solid #30384a;
+            min-height: 500px;
+        }
+        /* 仓库网格 */
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .item-card {
+            background: #272f3d;
+            border-radius: 16px;
+            padding: 12px 10px;
+            border-left: 6px solid;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 0 #0f131c;
+            transition: 0.1s;
+            border-image: none;
+        }
+        .item-white { border-color: #b0b0b0; }
+        .item-green { border-color: #5fbb6b; }
+        .item-blue { border-color: #5299e0; }
+        .item-purple { border-color: #c168e0; }
+        .item-gold { border-color: #efbf3f; }
+        .item-name {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: #e1e9f5;
+        }
+        .item-qty {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+        }
+        .item-use {
+            background: #3d4a5e;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            padding: 5px 0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .item-use:hover { background: #5f7291; }
+        .item-use:active { transform: translateY(2px); }
+
+        /* 生产区建筑网格 */
+        .buildings-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .building-category {
+            background: #1b212c;
+            border-radius: 24px;
+            padding: 16px;
+        }
+        .building-card {
+            background: #283040;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #404b60;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .building-info {
+            min-width: 200px;
+        }
+        .building-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #d6e3ff;
+        }
+        .building-level {
+            background: #1e2735;
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            margin: 8px 0;
+            color: #b9cbff;
+        }
+        .building-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .switch {
+            width: 52px;
+            height: 28px;
+            background: #3a4557;
+            border-radius: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #5f6f88;
+        }
+        .switch.on { background: #4f9e6b; }
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 1px;
+            left: 2px;
+            transition: 0.2s;
+        }
+        .switch.on::after { left: 26px; }
+        .recipe-select {
+            background: #1f293b;
+            color: white;
+            border: 1px solid #5e6d8c;
+            border-radius: 30px;
+            padding: 8px 20px;
+            min-width: 200px;
+        }
+        .progress-bar {
+            width: 200px;
+            height: 14px;
+            background: #191f2b;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #78b5f5, #3f7ec6);
+            width: 0%;
+        }
+        .power-cost {
+            color: #9fb0d3;
+            background: #1d2633;
+            padding: 4px 10px;
+            border-radius: 30px;
+        }
+        .btn {
+            background: #364153;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 36px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid #1a212d;
+            transition: 0.1s;
+        }
+        .btn:active { transform: translateY(3px); border-bottom-width: 1px; }
+        .btn-primary { background: #3f6792; border-bottom-color: #1f3853; }
+        .build-panel {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .footer-notes {
+            color: #6a7b9b;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameApp">
+    <!-- 资源栏 -->
+    <div class="resource-bar" id="resourceBar">
+        <div class="resource-item"><span class="resource-icon">⚡</span> <span id="powerDisplay">0/0</span></div>
+        <div class="resource-item exp"><span class="resource-icon">📊</span> <span id="expDisplay">0</span></div>
+        <div class="resource-item synth-stone"><span class="resource-icon">💎</span> <span id="synthStoneDisplay">0</span></div>
+        <div class="player-level">🏆 Lv.<span id="playerLevel">1</span></div>
+        <div class="power-badge">🔋 电量 <span id="powerUsage">0</span>/<span id="powerSupply">0</span></div>
+    </div>
+
+    <!-- 分页 -->
+    <div class="tabs">
+        <div class="tab active" id="tabProduction">🏭 生产区</div>
+        <div class="tab" id="tabStorage">📦 仓库</div>
+    </div>
+
+    <!-- 生产区页面 (默认显示) -->
+    <div class="page" id="productionPage">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="color:white; margin:0;">⚙️ 建筑群</h2>
+            <button class="btn btn-primary" id="openBuildMenu">➕ 新建建筑</button>
+        </div>
+        <div id="buildingsContainer" class="buildings-grid">
+            <!-- 动态渲染建筑 -->
+        </div>
+        <!-- 快速建造面板 (隐藏, 点击新建建筑显示) -->
+        <div id="buildSelector" style="display: none; background: #1b212c; border-radius: 30px; padding: 20px; margin-top: 16px;">
+            <h3 style="color:white; margin-top:0;">选择建筑类型</h3>
+            <select id="buildingTypeSelect" style="width:300px; padding:10px; background:#2f3b4f; color:white; border-radius:30px; border:1px solid #61759b;">
+                <option value="制造站">制造站</option><option value="加工站">加工站</option><option value="贸易站">贸易站</option>
+                <option value="研究所">研究所</option><option value="采矿机">采矿机</option><option value="化学采矿机">化学采矿机</option>
+                <option value="合成石采矿机">合成石采矿机</option><option value="合成石转质机">合成石转质机</option>
+                <option value="种植站">种植站</option><option value="合成站">合成站</option><option value="发电站">发电站</option>
+            </select>
+            <button class="btn btn-primary" id="confirmBuild" style="margin-left:16px;">消耗资源建造</button>
+            <button class="btn" id="cancelBuild">取消</button>
+        </div>
+    </div>
+
+    <!-- 仓库页面 (初始隐藏) -->
+    <div class="page" id="storagePage" style="display: none;">
+        <h2 style="color:white; margin-top:0;">📦 物资仓库</h2>
+        <div id="storageGrid" class="storage-grid">
+            <!-- 动态物品 -->
+        </div>
+    </div>
+    <div class="footer-notes">⚡ 无线自动化 · 数据自动保存 · 建筑耗电: 普通150/矿机200/特殊300</div>
+</div>
+
+<script>
+(function() {
+    // ---------- 游戏配置 ----------
+    const STORAGE_KEY = 'baseGameSave';
+
+    // 所有物品列表 (按颜色分类)
+    const ITEMS = {
+        // 白色
+        '异铁碎片': 'white', '源岩': 'white', '破损装置': 'white', '酯原料': 'white', '双酮': 'white', '代糖': 'white',
+        // 绿色
+        '异铁': 'green', '固源岩': 'green', '装置': 'green', '聚酸酯': 'green', '酮凝集': 'green', '糖': 'green', '盐': 'green', '浆果': 'green', '浆果种子': 'green', '低级exp资料': 'green',
+        // 蓝色
+        '异铁组': 'blue', '固源岩组': 'blue', '全新装置': 'blue', '聚酸酯组': 'blue', '酮凝集组': 'blue', '糖组': 'blue', '转质盐组': 'blue', '凝胶': 'blue', '芽针': 'blue', '芽针种子': 'blue', '中级exp资料': 'blue',
+        // 紫色
+        '异铁块': 'purple', '提纯源岩': 'purple', '改量装置': 'purple', '聚酸酯块': 'purple', '酮阵列': 'purple', '糖聚块': 'purple', '转质盐聚块': 'purple', '聚合凝胶': 'purple', '合成石原矿': 'purple', '高级exp资料': 'purple',
+        // 金色
+        '合成石': 'gold'
+    };
+
+    // 配方库 (建筑类型, 最低等级, 名称, 输入, 输出, 耗时秒)
+    const RECIPES = [
+        // 制造站
+        { bid: '制造站', level: 1, name: '低级EXP', input: { '源岩':2, '双酮':1 }, output: { '低级exp资料':1 }, time: 10 },
+        { bid: '制造站', level: 1, name: '源岩→固源岩', input: { '源岩':5 }, output: { '固源岩':1 }, time: 8 },
+        { bid: '制造站', level: 2, name: '中级EXP', input: { '固源岩':2, '酮凝集':1 }, output: { '中级exp资料':1 }, time: 30 },
+        { bid: '制造站', level: 2, name: '固源岩→固源岩组', input: { '固源岩':3 }, output: { '固源岩组':1 }, time: 15 },
+        { bid: '制造站', level: 3, name: '高级EXP', input: { '固源岩组':2, '酮凝集组':1 }, output: { '高级exp资料':1 }, time: 90 },
+        { bid: '制造站', level: 3, name: '固源岩组→提纯源岩', input: { '固源岩组':3 }, output: { '提纯源岩':1 }, time: 30 },
+        // 加工站
+        { bid: '加工站', level: 1, name: '异铁碎片→破损装置', input: { '异铁碎片':3 }, output: { '破损装置':1 }, time: 6 },
+        { bid: '加工站', level: 1, name: '双酮→酮凝集', input: { '双酮':2 }, output: { '酮凝集':1 }, time: 5 },
+        { bid: '加工站', level: 2, name: '异铁→装置', input: { '异铁':3 }, output: { '装置':1 }, time: 10 },
+        { bid: '加工站', level: 2, name: '酮凝集→酮凝集组', input: { '酮凝集':3 }, output: { '酮凝集组':1 }, time: 12 },
+        { bid: '加工站', level: 3, name: '异铁组→全新装置', input: { '异铁组':3 }, output: { '全新装置':1 }, time: 20 },
+        { bid: '加工站', level: 3, name: '酮凝集组→酮阵列', input: { '酮凝集组':3 }, output: { '酮阵列':1 }, time: 25 },
+        { bid: '加工站', level: 4, name: '异铁块→改量装置', input: { '异铁块':2 }, output: { '改量装置':1 }, time: 40 },
+        // 贸易站
+        { bid: '贸易站', level: 1, name: '贸易异铁', input: { '双酮':3, '异铁碎片':3 }, output: { '异铁':1 }, time: 12 },
+        { bid: '贸易站', level: 2, name: '贸易异铁组', input: { '酮凝集':3, '异铁':3 }, output: { '异铁组':1 }, time: 20 },
+        { bid: '贸易站', level: 3, name: '贸易异铁块', input: { '酮凝集组':3, '异铁组':3 }, output: { '异铁块':1 }, time: 30 },
+        { bid: '贸易站', level: 4, name: '贸易合成石', input: { '酮阵列':3, '合成石原矿':10 }, output: { '合成石':10 }, time: 60 },
+        // 研究所
+        { bid: '研究所', level: 1, name: '糖+聚酸酯', input: { '代糖':3, '酯原料':3 }, output: { '糖':1, '聚酸酯':1 }, time: 10 },
+        { bid: '研究所', level: 2, name: '糖组+聚酸酯组', input: { '糖':3, '聚酸酯':3 }, output: { '糖组':1, '聚酸酯组':1 }, time: 18 },
+        { bid: '研究所', level: 2, name: '盐→转质盐组', input: { '盐':3 }, output: { '转质盐组':1 }, time: 12 },
+        { bid: '研究所', level: 3, name: '糖聚块+聚酸酯块', input: { '糖组':3, '聚酸酯组':3 }, output: { '糖聚块':1, '聚酸酯块':1 }, time: 30 },
+        { bid: '研究所', level: 3, name: '转质盐组→转质盐聚块', input: { '转质盐组':3 }, output: { '转质盐聚块':1 }, time: 25 },
+        // 采矿机 (无消耗，产出多种)
+        { bid: '采矿机', level: 1, name: '基础开采', input: { }, output: { '源岩':3, '异铁碎片':1, '代糖':2 }, time: 12 },
+        { bid: '采矿机', level: 2, name: '中级开采', input: { }, output: { '固源岩':3, '异铁':1, '糖':2 }, time: 15 },
+        { bid: '采矿机', level: 3, name: '高级开采', input: { }, output: { '固源岩组':3, '异铁组':1, '糖组':2 }, time: 20 },
+        // 化学采矿机
+        { bid: '化学采矿机', level: 1, name: '基础化学', input: { }, output: { '双酮':2, '酯原料':1 }, time: 10 },
+        { bid: '化学采矿机', level: 2, name: '中级化学', input: { }, output: { '酮凝集':2, '聚酸酯':1, '盐':1 }, time: 14 },
+        { bid: '化学采矿机', level: 3, name: '高级化学', input: { }, output: { '酮凝集组':2, '聚酸酯组':1, '转质盐组':1 }, time: 18 },
+        // 合成石采矿机 (消耗)
+        { bid: '合成石采矿机', level: 1, name: '合成石开采I', input: { '异铁':5 }, output: { '合成石':1 }, time: 20 },
+        { bid: '合成石采矿机', level: 2, name: '合成石开采II', input: { '异铁组':3 }, output: { '合成石':1 }, time: 18 },
+        { bid: '合成石采矿机', level: 3, name: '合成石开采III', input: { '异铁块':2 }, output: { '合成石':1 }, time: 16 },
+        // 合成石转质机
+        { bid: '合成石转质机', level: 1, name: '原矿转化I', input: { '转质盐组':5 }, output: { '合成石原矿':1 }, time: 25 },
+        { bid: '合成石转质机', level: 2, name: '原矿转化II', input: { '转质盐聚块':2 }, output: { '合成石原矿':1 }, time: 22 },
+        // 种植站
+        { bid: '种植站', level: 1, name: '种浆果', input: { '浆果种子':1 }, output: { '浆果':1 }, time: 15 },
+        { bid: '种植站', level: 1, name: '浆果采种', input: { '浆果':1 }, output: { '浆果种子':2 }, time: 8 },
+        { bid: '种植站', level: 2, name: '种芽针', input: { '芽针种子':1 }, output: { '芽针':1 }, time: 18 },
+        { bid: '种植站', level: 2, name: '芽针采种', input: { '芽针':1 }, output: { '芽针种子':2 }, time: 10 },
+        // 合成站
+        { bid: '合成站', level: 1, name: '凝胶合成', input: { '浆果':1 }, output: { '凝胶':1 }, time: 8 },
+        { bid: '合成站', level: 2, name: '芽针→凝胶', input: { '芽针':1 }, output: { '凝胶':2 }, time: 10 },
+        { bid: '合成站', level: 2, name: '聚合凝胶', input: { '凝胶':3 }, output: { '聚合凝胶':1 }, time: 18 },
+    ];
+
+    // 建筑类型对应基础耗电
+    const POWER_COST = { '制造站':150, '加工站':150, '贸易站':150, '研究所':150, '采矿机':200, '化学采矿机':200, '合成石采矿机':300, '合成石转质机':300, '种植站':150, '合成站':150, '发电站':0 };
+
+    // 升级所需材料与等级条件
+    const UPGRADE_REQ = {
+        '制造站': { 2: { level:10, mat:{'装置':5} }, 3: { level:20, mat:{'全新装置':5} } },
+        '加工站': { 2: { level:10, mat:{'固源岩':5} }, 3: { level:20, mat:{'固源岩组':5} }, 4: { level:40, mat:{'提纯源岩':5} } },
+        '贸易站': { 2: { level:10, mat:{'聚酸酯':5} }, 3: { level:20, mat:{'聚酸酯组':5} }, 4: { level:40, mat:{'聚酸酯块':5} } },
+        '研究所': { 2: { level:10, mat:{'酮凝集':5} }, 3: { level:20, mat:{'酮凝集组':5} } },
+        '采矿机': { 2: { level:15, mat:{'固源岩':5} }, 3: { level:25, mat:{'固源岩组':5} } },
+        '化学采矿机': { 2: { level:15, mat:{'异铁':5} }, 3: { level:25, mat:{'异铁组':5} } },
+        '合成石采矿机': { 2: { level:10, mat:{'糖组':5} }, 3: { level:20, mat:{'糖聚块':5} } },
+        '合成石转质机': { 2: { level:50, mat:{'聚合凝胶':5} } },
+        '种植站': { 2: { level:10, mat:{'糖组':5} } },
+        '合成站': { 2: { level:15, mat:{'酮凝集组':5} } },
+        '发电站': { 2: { level:10, mat:{'全新装置':5} }, 3: { level:20, mat:{'改量装置':5} } },
+    };
+
+    // 建造所需 (一级)
+    const BUILD_REQ = {
+        '制造站': { level:1, mat:{'破损装置':5} },
+        '加工站': { level:1, mat:{'源岩':5} },
+        '贸易站': { level:1, mat:{'酯原料':5} },
+        '研究所': { level:1, mat:{'双酮':5} },
+        '采矿机': { level:1, mat:{'源岩':5} },
+        '化学采矿机': { level:1, mat:{'异铁碎片':5} },
+        '合成石采矿机': { level:1, mat:{'糖':5} },
+        '合成石转质机': { level:35, mat:{'凝胶':5} },
+        '种植站': { level:1, mat:{'糖':5} },
+        '合成站': { level:1, mat:{'酮凝集':5} },
+        '发电站': { level:1, mat:{'装置':5} },
+    };
+
+    // 初始资源
+    const INIT_RESOURCES = {
+        '源岩':10, '异铁碎片':10, '双酮':10, '酯原料':10, '代糖':10, '破损装置':2, '装置':1, '糖':3, '酮凝集':3, '浆果种子':0, '芽针种子':0
+    };
+
+    // ---------- 游戏状态 ----------
+    let gameState = {
+        playerLevel: 1,
+        playerExp: 0,
+        resources: { ...INIT_RESOURCES, '合成石':0, '低级exp资料':0, '中级exp资料':0, '高级exp资料':0 },
+        buildings: [],
+        nextId: 100,
+        powerSupply: 1000, // 动态计算
+    };
+
+    // 初始化建筑 (开局)
+    function initBuildings() {
+        gameState.buildings = [
+            { id:1, type:'加工站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
+            { id:2, type:'制造站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
+            { id:3, type:'发电站', level:1, enabled:true, currentRecipe:null, progress:0, recipeIndex:-1 }, // 发电站无配方
+            { id:4, type:'发电站', level:1, enabled:true, currentRecipe:null, progress:0, recipeIndex:-1 },
+            { id:5, type:'采矿机', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
+            { id:6, type:'贸易站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
+        ];
+        gameState.nextId = 100;
+    }
+    if (!localStorage.getItem(STORAGE_KEY)) {
+        initBuildings();
+        // 种植站奖励 (开局无, 建造后给)
+    } else {
+        try { gameState = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { initBuildings(); }
+    }
+
+    // 辅助: 计算总供电/耗电
+    function recalcPower() {
+        let supply = 0;
+        for (let b of gameState.buildings) {
+            if (b.type === '发电站') {
+                if (b.level === 1) supply += 500;
+                else if (b.level === 2) supply += 700;
+                else if (b.level === 3) supply += 1000;
+            }
+        }
+        let usage = 0;
+        for (let b of gameState.buildings) {
+            if (b.type === '发电站') continue;
+            if (b.enabled) usage += POWER_COST[b.type] || 150;
+        }
+        gameState.powerSupply = supply;
+        return { supply, usage };
+    }
+
+    // 检查电量是否足够所有开启建筑工作
+    function powerOk() {
+        let { supply, usage } = recalcPower();
+        return usage <= supply;
+    }
+
+    // 获取建筑可用配方
+    function getRecipesForBuilding(b) {
+        if (b.type === '发电站') return [];
+        return RECIPES.filter(r => r.bid === b.type && r.level <= b.level);
+    }
+
+    // 尝试生产 tick (每秒调用)
+    function productionTick() {
+        if (!powerOk()) return; // 电量不足，所有暂停
+
+        for (let b of gameState.buildings) {
+            if (b.type === '发电站' || !b.enabled) continue;
+            let recipes = getRecipesForBuilding(b);
+            if (recipes.length === 0) continue;
+            let recipe = recipes[b.recipeIndex] || recipes[0];
+            if (!recipe) continue;
+            // 检查原料
+            let canCraft = true;
+            for (let [mat, need] of Object.entries(recipe.input)) {
+                if ((gameState.resources[mat] || 0) < need) { canCraft = false; break; }
+            }
+            if (!canCraft) continue; // 原料不足
+
+            // 增加进度
+            b.progress = (b.progress || 0) + 1;
+            if (b.progress >= recipe.time) {
+                // 扣除原料，添加产物
+                for (let [mat, need] of Object.entries(recipe.input)) {
+                    gameState.resources[mat] = (gameState.resources[mat] || 0) - need;
+                }
+                for (let [prod, qty] of Object.entries(recipe.output)) {
+                    gameState.resources[prod] = (gameState.resources[prod] || 0) + qty;
+                }
+                b.progress = 0;
+            }
+        }
+        saveGame();
+        renderAll();
+    }
+
+    // 升级建筑
+    function upgradeBuilding(b) {
+        let nextLevel = b.level + 1;
+        let req = UPGRADE_REQ[b.type]?.[nextLevel];
+        if (!req) return false;
+        if (gameState.playerLevel < req.level) { alert('玩家等级不足'); return false; }
+        for (let [mat, qty] of Object.entries(req.mat)) {
+            if ((gameState.resources[mat] || 0) < qty) { alert('材料不足'); return false; }
+        }
+        for (let [mat, qty] of Object.entries(req.mat)) gameState.resources[mat] -= qty;
+        b.level = nextLevel;
+        if (b.type === '种植站' && nextLevel === 2) {
+            gameState.resources['芽针种子'] = (gameState.resources['芽针种子'] || 0) + 3; // 奖励
+        }
+        saveGame(); renderAll(); return true;
+    }
+
+    // 建造新建筑
+    function buildNew(type) {
+        let req = BUILD_REQ[type];
+        if (!req) return;
+        if (gameState.playerLevel < req.level) { alert('等级不足'); return; }
+        for (let [mat, qty] of Object.entries(req.mat)) {
+            if ((gameState.resources[mat] || 0) < qty) { alert('材料不足'); return; }
+        }
+        for (let [mat, qty] of Object.entries(req.mat)) gameState.resources[mat] -= qty;
+        let newB = {
+            id: gameState.nextId++,
+            type: type,
+            level: 1,
+            enabled: true,
+            currentRecipe: 0,
+            progress: 0,
+            recipeIndex: 0,
+        };
+        if (type === '种植站') {
+            gameState.resources['浆果种子'] = (gameState.resources['浆果种子'] || 0) + 3; // 一级奖励
+        }
+        gameState.buildings.push(newB);
+        saveGame(); renderAll();
+    }
+
+    // 使用exp资料
+    function useExpItem(item) {
+        let gain = 0;
+        if (item === '低级exp资料') gain = 10;
+        else if (item === '中级exp资料') gain = 50;
+        else if (item === '高级exp资料') gain = 200;
+        else return;
+        if (gameState.resources[item] > 0) {
+            gameState.resources[item]--;
+            gameState.playerExp = (gameState.playerExp || 0) + gain;
+            // 简单升级：每100exp一级
+            let newLevel = Math.floor(gameState.playerExp / 100) + 1;
+            if (newLevel > gameState.playerLevel) gameState.playerLevel = newLevel;
+            saveGame(); renderAll();
+        }
+    }
+
+    // 保存
+    function saveGame() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    }
+
+    // ---------- 渲染 ----------
+    function renderResources() {
+        document.getElementById('expDisplay').innerText = gameState.playerExp;
+        document.getElementById('synthStoneDisplay').innerText = gameState.resources['合成石'] || 0;
+        document.getElementById('playerLevel').innerText = gameState.playerLevel;
+        let { supply, usage } = recalcPower();
+        document.getElementById('powerSupply').innerText = supply;
+        document.getElementById('powerUsage').innerText = usage;
+        document.getElementById('powerDisplay').innerText = `${usage}/${supply}`;
+    }
+
+    function renderStorage() {
+        let grid = document.getElementById('storageGrid');
+        let html = '';
+        for (let [name, color] of Object.entries(ITEMS)) {
+            let qty = gameState.resources[name] || 0;
+            let useBtn = (name.includes('exp资料')) ? `<button class="item-use" data-item="${name}">使用</button>` : '';
+            html += `<div class="item-card item-${color}"><div class="item-name">${name}</div><div class="item-qty">${qty}</div>${useBtn}</div>`;
+        }
+        grid.innerHTML = html;
+        // 绑定使用事件
+        document.querySelectorAll('.item-use').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let item = e.target.dataset.item;
+                useExpItem(item);
+            });
+        });
+    }
+
+    function renderProduction() {
+        let container = document.getElementById('buildingsContainer');
+        let html = '';
+        for (let b of gameState.buildings) {
+            let recipes = getRecipesForBuilding(b);
+            let recipeOptions = recipes.map((r, idx) => `<option value="${idx}" ${b.recipeIndex===idx?'selected':''}>${r.name} (${r.time}s)</option>`).join('');
+            let progressWidth = (b.progress || 0) / (recipes[b.recipeIndex]?.time || 1) * 100;
+            let switchClass = b.enabled ? 'switch on' : 'switch';
+            let powerCost = POWER_COST[b.type] || 0;
+            html += `<div class="building-card" data-id="${b.id}">
+                <div class="building-info">
+                    <div class="building-name">${b.type}</div>
+                    <div class="building-level">Lv.${b.level}</div>
+                    <div class="power-cost">⚡${powerCost}</div>
+                </div>
+                <div class="building-switch">
+                    <div class="${switchClass}" data-id="${b.id}" data-action="toggle"></div>
+                    <span style="color:white">${b.enabled?'运行中':'关闭'}</span>
+                </div>
+                ${b.type !== '发电站' ? `
+                <select class="recipe-select" data-id="${b.id}" data-action="recipe">${recipeOptions}</select>
+                <div class="progress-bar"><div class="progress-fill" style="width:${progressWidth}%"></div></div>
+                ` : '<div style="width:200px"></div>'}
+                <button class="btn" data-id="${b.id}" data-action="upgrade">升级</button>
+            </div>`;
+        }
+        container.innerHTML = html;
+        // 事件绑定
+        document.querySelectorAll('[data-action="toggle"]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                let id = e.target.dataset.id;
+                let b = gameState.buildings.find(b => b.id == id);
+                if (b) { b.enabled = !b.enabled; saveGame(); renderAll(); }
+            });
+        });
+        document.querySelectorAll('[data-action="recipe"]').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                let id = e.target.dataset.id;
+                let b = gameState.buildings.find(b => b.id == id);
+                if (b) { b.recipeIndex = parseInt(e.target.value); b.progress = 0; saveGame(); renderAll(); }
+            });
+        });
+        document.querySelectorAll('[data-action="upgrade"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let id = e.target.dataset.id;
+                let b = gameState.buildings.find(b => b.id == id);
+                if (b) upgradeBuilding(b);
+            });
+        });
+    }
+
+    function renderAll() {
+        renderResources();
+        if (document.getElementById('productionPage').style.display !== 'none') renderProduction();
+        if (document.getElementById('storagePage').style.display !== 'none') renderStorage();
+    }
+
+    // 分页
+    document.getElementById('tabProduction').addEventListener('click', ()=>{
+        document.getElementById('tabProduction').classList.add('active');
+        document.getElementById('tabStorage').classList.remove('active');
+        document.getElementById('productionPage').style.display = 'block';
+        document.getElementById('storagePage').style.display = 'none';
+        renderProduction();
+    });
+    document.getElementById('tabStorage').addEventListener('click', ()=>{
+        document.getElementById('tabStorage').classList.add('active');
+        document.getElementById('tabProduction').classList.remove('active');
+        document.getElementById('storagePage').style.display = 'block';
+        document.getElementById('productionPage').style.display = 'none';
+        renderStorage();
+    });
+
+    // 建造菜单
+    document.getElementById('openBuildMenu').addEventListener('click', ()=>{
+        document.getElementById('buildSelector').style.display = 'block';
+    });
+    document.getElementById('cancelBuild').addEventListener('click', ()=>{
+        document.getElementById('buildSelector').style.display = 'none';
+    });
+    document.getElementById('confirmBuild').addEventListener('click', ()=>{
+        let type = document.getElementById('buildingTypeSelect').value;
+        buildNew(type);
+        document.getElementById('buildSelector').style.display = 'none';
+    });
+
+    // 每秒循环
+    setInterval(() => { productionTick(); }, 1000);
+    // 初始渲染
+    renderAll();
+    saveGame();
+})();
+</script>
+</body>
+</html>
