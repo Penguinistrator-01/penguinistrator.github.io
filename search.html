@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>明日方舟 | 搜索</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-title">PRTS.Ark</span>
+        <span class="brand-sub">Rhodes Island Archive</span>
+      </div>
+      <button class="menu-toggle" aria-label="打开导航" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="site-nav">
+        <a href="index.html">发现</a>
+        <a class="active" href="search.html">搜索</a>
+        <a href="shop.html">杂货铺</a>
+        <a href="about.html">关于</a>
+      </nav>
+    </header>
+    <main class="page">
+      <section class="section search-hero">
+        <div class="section-title">
+          <h2>资料搜索</h2>
+          <p>输入关键词获取条目，结果按权威性与时间综合排序。</p>
+        </div>
+        <div class="search-bar">
+          <input
+            type="text"
+            placeholder="输入关键词，如：博士、罗德岛、源石"
+            data-search-input
+          />
+          <button class="primary-button" data-search-button>
+            <i class="fa-solid fa-magnifying-glass"></i>
+            搜索
+          </button>
+        </div>
+        <div class="search-tags">
+          <span class="tag-chip" data-search-tag="博士">博士</span>
+          <span class="tag-chip" data-search-tag="罗德岛">罗德岛</span>
+          <span class="tag-chip" data-search-tag="源石">源石</span>
+          <span class="tag-chip" data-search-tag="塔露拉">塔露拉</span>
+          <span class="tag-chip" data-search-tag="危机合约">危机合约</span>
+        </div>
+        <div class="search-toolbar">
+          <div class="toolbar-left">
+            <span class="text-muted">结果排序：</span>
+            <button class="ghost-button active" data-sort="authority">按权威</button>
+            <button class="ghost-button" data-sort="time">按时间</button>
+          </div>
+          <div class="toolbar-right">
+            <span class="text-muted" data-result-count>共 0 条结果</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="result-list" data-search-results></div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <p>搜索结果为静态数据示例，条目来源于公开资料与官方渠道整理。</p>
+    </footer>
+    <script src="script.js"></script>
+  </body>
+</html>

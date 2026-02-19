@@ -1,704 +1,636 @@
 <!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>基建拓荒 · 合成石与EXP</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            user-select: none;
-        }
-        body {
-            background: #0b0e14;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 12px;
-        }
-        .game-container {
-            max-width: 1400px;
-            width: 100%;
-            background: #1a1f2b;
-            border-radius: 32px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            padding: 20px;
-            border: 1px solid #2f3747;
-        }
-        /* 顶部资源栏 */
-        .resource-bar {
-            background: #242b38;
-            border-radius: 60px;
-            padding: 12px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 24px 36px;
-            align-items: center;
-            border: 1px solid #3e485a;
-            box-shadow: inset 0 2px 5px #0f1219;
-        }
-        .resource-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            font-size: 1.2rem;
-        }
-        .resource-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #2f3b4b;
-            border: 1px solid #5e6f88;
-        }
-        .exp { color: #b2e63e; text-shadow: 0 0 8px #5f9e2b; }
-        .synth-stone { color: #ffd966; text-shadow: 0 0 8px #b8860b; }
-        .player-level { background: #2d3748; padding: 4px 20px; border-radius: 40px; border: 1px solid #5f6b7f; }
-        .power-badge { background: #1e2a36; padding: 4px 18px; border-radius: 40px; border: 1px solid #3f8ab3; color: #7ad0ff; }
-        /* 分页标签 */
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        .tab {
-            background: #262e3c;
-            color: #a3b3d1;
-            padding: 12px 32px;
-            border-radius: 40px 40px 0 0;
-            font-weight: 600;
-            cursor: pointer;
-            border: 1px solid #384153;
-            border-bottom: none;
-            transition: 0.2s;
-        }
-        .tab.active {
-            background: #2f3b4f;
-            color: white;
-            border-color: #6e7f9e;
-            transform: translateY(-3px);
-        }
-        .page {
-            background: #1e2532;
-            border-radius: 0 24px 24px 24px;
-            padding: 24px;
-            border: 1px solid #30384a;
-            min-height: 500px;
-        }
-        /* 仓库网格 */
-        .storage-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 12px;
-        }
-        .item-card {
-            background: #272f3d;
-            border-radius: 16px;
-            padding: 12px 10px;
-            border-left: 6px solid;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 5px 0 #0f131c;
-            transition: 0.1s;
-            border-image: none;
-        }
-        .item-white { border-color: #b0b0b0; }
-        .item-green { border-color: #5fbb6b; }
-        .item-blue { border-color: #5299e0; }
-        .item-purple { border-color: #c168e0; }
-        .item-gold { border-color: #efbf3f; }
-        .item-name {
-            font-weight: bold;
-            font-size: 1rem;
-            margin-bottom: 6px;
-            color: #e1e9f5;
-        }
-        .item-qty {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: white;
-            margin-bottom: 8px;
-        }
-        .item-use {
-            background: #3d4a5e;
-            border: none;
-            color: white;
-            border-radius: 20px;
-            padding: 5px 0;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .item-use:hover { background: #5f7291; }
-        .item-use:active { transform: translateY(2px); }
-
-        /* 生产区建筑网格 */
-        .buildings-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        .building-category {
-            background: #1b212c;
-            border-radius: 24px;
-            padding: 16px;
-        }
-        .building-card {
-            background: #283040;
-            border-radius: 24px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid #404b60;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            align-items: center;
-        }
-        .building-info {
-            min-width: 200px;
-        }
-        .building-name {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #d6e3ff;
-        }
-        .building-level {
-            background: #1e2735;
-            display: inline-block;
-            padding: 4px 16px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            margin: 8px 0;
-            color: #b9cbff;
-        }
-        .building-switch {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .switch {
-            width: 52px;
-            height: 28px;
-            background: #3a4557;
-            border-radius: 40px;
-            position: relative;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid #5f6f88;
-        }
-        .switch.on { background: #4f9e6b; }
-        .switch::after {
-            content: '';
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            background: white;
-            border-radius: 50%;
-            top: 1px;
-            left: 2px;
-            transition: 0.2s;
-        }
-        .switch.on::after { left: 26px; }
-        .recipe-select {
-            background: #1f293b;
-            color: white;
-            border: 1px solid #5e6d8c;
-            border-radius: 30px;
-            padding: 8px 20px;
-            min-width: 200px;
-        }
-        .progress-bar {
-            width: 200px;
-            height: 14px;
-            background: #191f2b;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #78b5f5, #3f7ec6);
-            width: 0%;
-        }
-        .power-cost {
-            color: #9fb0d3;
-            background: #1d2633;
-            padding: 4px 10px;
-            border-radius: 30px;
-        }
-        .btn {
-            background: #364153;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 36px;
-            font-weight: 600;
-            cursor: pointer;
-            border-bottom: 3px solid #1a212d;
-            transition: 0.1s;
-        }
-        .btn:active { transform: translateY(3px); border-bottom-width: 1px; }
-        .btn-primary { background: #3f6792; border-bottom-color: #1f3853; }
-        .build-panel {
-            margin-top: 20px;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .footer-notes {
-            color: #6a7b9b;
-            margin-top: 20px;
-            font-size: 0.85rem;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-<div class="game-container" id="gameApp">
-    <!-- 资源栏 -->
-    <div class="resource-bar" id="resourceBar">
-        <div class="resource-item"><span class="resource-icon">⚡</span> <span id="powerDisplay">0/0</span></div>
-        <div class="resource-item exp"><span class="resource-icon">📊</span> <span id="expDisplay">0</span></div>
-        <div class="resource-item synth-stone"><span class="resource-icon">💎</span> <span id="synthStoneDisplay">0</span></div>
-        <div class="player-level">🏆 Lv.<span id="playerLevel">1</span></div>
-        <div class="power-badge">🔋 电量 <span id="powerUsage">0</span>/<span id="powerSupply">0</span></div>
-    </div>
-
-    <!-- 分页 -->
-    <div class="tabs">
-        <div class="tab active" id="tabProduction">🏭 生产区</div>
-        <div class="tab" id="tabStorage">📦 仓库</div>
-    </div>
-
-    <!-- 生产区页面 (默认显示) -->
-    <div class="page" id="productionPage">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
-            <h2 style="color:white; margin:0;">⚙️ 建筑群</h2>
-            <button class="btn btn-primary" id="openBuildMenu">➕ 新建建筑</button>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>明日方舟 | 发现</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-title">PRTS.Ark</span>
+        <span class="brand-sub">Rhodes Island Archive</span>
+      </div>
+      <button class="menu-toggle" aria-label="打开导航" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="site-nav">
+        <a class="active" href="index.html">发现</a>
+        <a href="search.html">搜索</a>
+        <a href="shop.html">杂货铺</a>
+        <a href="about.html">关于</a>
+      </nav>
+    </header>
+    <main class="page">
+      <section class="hero">
+        <div class="hero-text">
+          <h1>明日方舟·发现</h1>
+          <p>
+            以黑白灰为底，梳理泰拉世界观的主线叙事、种族谱系与机制生态。内容基于游戏设定与公开资料整理，便于快速检索与深入阅读。
+          </p>
+          <div class="hero-tags">
+            <span>主线与支线</span>
+            <span>种族档案</span>
+            <span>玩法机制</span>
+          </div>
         </div>
-        <div id="buildingsContainer" class="buildings-grid">
-            <!-- 动态渲染建筑 -->
+        <div class="hero-panel">
+          <div class="panel-block">
+            <h3>世界观关键词</h3>
+            <ul>
+              <li>泰拉大陆与移动城邦</li>
+              <li>矿石病与感染者议题</li>
+              <li>罗德岛的医疗与干预</li>
+              <li>拉特兰、乌萨斯、维多利亚等势力</li>
+            </ul>
+          </div>
+          <div class="panel-block">
+            <h3>站点导读</h3>
+            <p>通过折叠式章节卡片与网格档案，快速定位剧情节点与干员背景。</p>
+            <a class="ghost-button" href="search.html">进入搜索</a>
+          </div>
         </div>
-        <!-- 快速建造面板 (隐藏, 点击新建建筑显示) -->
-        <div id="buildSelector" style="display: none; background: #1b212c; border-radius: 30px; padding: 20px; margin-top: 16px;">
-            <h3 style="color:white; margin-top:0;">选择建筑类型</h3>
-            <select id="buildingTypeSelect" style="width:300px; padding:10px; background:#2f3b4f; color:white; border-radius:30px; border:1px solid #61759b;">
-                <option value="制造站">制造站</option><option value="加工站">加工站</option><option value="贸易站">贸易站</option>
-                <option value="研究所">研究所</option><option value="采矿机">采矿机</option><option value="化学采矿机">化学采矿机</option>
-                <option value="合成石采矿机">合成石采矿机</option><option value="合成石转质机">合成石转质机</option>
-                <option value="种植站">种植站</option><option value="合成站">合成站</option><option value="发电站">发电站</option>
-            </select>
-            <button class="btn btn-primary" id="confirmBuild" style="margin-left:16px;">消耗资源建造</button>
-            <button class="btn" id="cancelBuild">取消</button>
+      </section>
+
+      <section class="section" id="chapters">
+        <div class="section-title">
+          <h2>主线与支线章节</h2>
+          <p>按照剧情时间线与发布时间整理，涵盖序章、主线与主要故事集。</p>
         </div>
-    </div>
+        <div class="accordion">
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>序章 黑暗时代·上</h3>
+                <p>地点：切尔诺伯格 / 参与：阿米娅、凯尔希、杜宾、梅尔、Scout</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛在切尔诺伯格执行救援任务，博士被从石棺中唤醒并失去记忆。整合运动袭击迫使小队突围，阿米娅以组织领袖身份统筹撤离，凯尔希尝试稳定局势。短暂的救援行动迅速演变为与整合运动的城市追逐战，为后续龙门协定埋下伏笔。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第一章 黑暗时代·下</h3>
+                <p>地点：切尔诺伯格外围 / 参与：阿米娅、博士、临光、芬、米莎</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              撤离过程中的罗德岛在废墟里救下米莎，遭到整合运动的围堵。博士开始重新适应指挥，以战术协调护送队伍穿越封锁线。队伍从叛乱组织中窥见塔露拉的阴影与感染者被压迫的现实，罗德岛被迫正视救援行动背后的政治立场与道德困境。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第二章 异卵同生</h3>
+                <p>地点：龙门外环 / 参与：阿米娅、博士、能天使、德克萨斯、陈</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛与龙门达成合作协议，协助龙门近卫局应对整合运动潜入。企鹅物流与龙门势力被卷入多方角力，陈晖洁对罗德岛保持警惕。行动中米莎的身份与命运逐渐揭开，博士尝试平衡救援与政治协定，整合运动内部的分歧也在暗处发酵。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第三章 二次呼吸</h3>
+                <p>地点：龙门城区 / 参与：阿米娅、陈、诗怀雅、格拉尼、米莎</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              龙门追捕整合运动的行动升级为城内作战，陈与罗德岛需要在治安与救援之间取舍。米莎被组织利用的真相引发冲突，整合运动内部矛盾导致剧烈牺牲。阿米娅在动荡中坚定罗德岛的立场，博士开始意识到龙门协定并非单纯的合作，而是一场对感染者命运的博弈。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第四章 急性衰竭</h3>
+                <p>地点：龙门废城 / 参与：阿米娅、霜星、灰喉、白面鸮、红</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛被迫进入龙门废城，与雪怪小队交锋。霜星作为整合运动核心战力登场，其理念与感染者苦难形成沉重对照。阿米娅在救治与战斗之间艰难抉择，博士通过战术阻止灾害扩散，却也不得不接受感染者矛盾的残酷现实，罗德岛的立场在冲突中被反复考验。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第五章 靶向药物</h3>
+                <p>地点：龙门近卫局 / 参与：阿米娅、陈、煌、凯尔希、德克萨斯</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              龙门近卫局陷入围攻，罗德岛介入协防并护送关键人员。陈面对龙门内部的政治压力与个人信念的撕裂，凯尔希强调罗德岛必须坚持医疗原则。战斗与交涉并行推进，整合运动的行动动机逐渐明朗，罗德岛也意识到感染者问题背后更深层的社会裂痕。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第六章 局部坏死</h3>
+                <p>地点：切尔诺伯格外围 / 参与：阿米娅、博士、霜星、爱国者、灰喉</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛突入切尔诺伯格核心区，直面爱国者所率的乌萨斯北原游击队。霜星的结局令罗德岛深受震动，感染者的悲剧与乌萨斯政治压迫交织在一起。阿米娅在战斗中逐渐明确自己的责任，博士则在极限压力下完成一次次关键指挥，为阻止核心城失控争取时间。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第七章 苦难摇篮</h3>
+                <p>地点：切尔诺伯格核心城 / 参与：阿米娅、凯尔希、塔露拉、Rosmontis、迷迭香</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛深入核心城拦截整合运动的计划，塔露拉的意志与黑蛇的阴影逐渐揭示。凯尔希与博士的历史关系浮出水面，迷迭香等干员在战斗中承担沉重代价。阿米娅开始理解感染者革命的复杂根源，在混乱的权力交替中尝试守住罗德岛的医疗底线。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第八章 怒号光明</h3>
+                <p>地点：龙门城防 / 参与：阿米娅、陈、塔露拉、爱国者、凯尔希</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛在龙门与切尔诺伯格之间完成最终拦截，阿米娅直面不死黑蛇的操控与塔露拉的真实意志。爱国者陨落的意义让整合运动的理想彻底动摇，龙门的立场也暴露出对感染者的复杂态度。战役结束后罗德岛带走塔露拉，选择暂离争端核心。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第九章 风暴瞭望</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、博士、焰尾、格拉斯哥帮、风笛</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              罗德岛进入维多利亚，接触伦蒂尼姆地下组织并面对摄政王军。维多利亚的阶级矛盾与军政裂痕逐渐显现，罗德岛被迫在政治斗争与人道主义之间寻找平衡。阿米娅尝试建立新的合作关系，博士则以低调方式收集情报，为后续更大规模的冲突做准备。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第十章 破碎日冕</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、凯尔希、温蒂、推进之王、风笛</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              伦蒂尼姆的对抗全面升级，摄政王军与城市反抗组织展开激烈交火。凯尔希以罗德岛的独立立场进行周旋，推进之王的身世与王权责任被再度提出。阿米娅在混战中努力保护平民，博士协助制定撤离与防御方案，罗德岛在维多利亚问题中被推向更复杂的政治局面。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第十一章 淬火尘霾</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、博士、赫德雷、萨莉亚、流明</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              伦蒂尼姆局势持续恶化，罗德岛在城市裂缝中维持医疗与疏散行动。各方势力的立场更趋极端，罗德岛不得不在救治与战略之间反复权衡。博士通过多线协作确保行动链条不断裂，阿米娅则尝试在众多冲突中保住感染者的生存空间。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第十二章 惊霆无声</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、凯尔希、推进之王、阿斯卡纶、菲亚梅塔</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              新的权力势力介入伦蒂尼姆战局，城市秩序在战争与灾害的夹击下濒临崩溃。罗德岛必须同时处理政治交涉与灾害应对，干员间的协作变得更为紧密。阿米娅面对更宏大的局势考验，对罗德岛未来方向产生更明确的判断。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第十三章 恶兆湍流</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、博士、黄金军团、格拉斯哥帮、焰尾</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              城市内部爆发更剧烈的武装冲突，旧势力与新势力对立升级。罗德岛在灰色地带开展救援，同时尝试建立可持续的合作网络以保护感染者与平民。博士以稳健指挥稳固战线，阿米娅则在矛盾激化的环境下保持罗德岛的伦理底线。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>第十四章 慈悲灯塔</h3>
+                <p>地点：维多利亚·伦蒂尼姆 / 参与：阿米娅、凯尔希、推进之王、赫德雷、温蒂</p>
+              </div>
+              <span class="tag">主线</span>
+            </summary>
+            <p>
+              伦蒂尼姆的终局战役进入收束阶段，各方在混乱中寻求新的平衡点。罗德岛在灾害与战争之间持续奔走，努力修复人道通道与医疗供应。阿米娅以更成熟的姿态凝聚队伍，博士在城市废墟中推进关键部署，确保罗德岛的行动能从战争中带出希望。
+            </p>
+          </details>
 
-    <!-- 仓库页面 (初始隐藏) -->
-    <div class="page" id="storagePage" style="display: none;">
-        <h2 style="color:white; margin-top:0;">📦 物资仓库</h2>
-        <div id="storageGrid" class="storage-grid">
-            <!-- 动态物品 -->
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>骑兵与猎人</h3>
+                <p>地点：卡西米尔 / 参与：格拉尼、临光、夜烟、塑心</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              格拉尼在卡西米尔骑士文化中执行护送任务，卷入骑士竞技与商会利益冲突。罗德岛在调查骑士精神变质的同时，见识到卡西米尔的资本化比赛与感染者被压迫的现实。格拉尼在任务中完成成长，罗德岛也开始认识到各国城市的制度性矛盾。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>喧闹法则</h3>
+                <p>地点：龙门 / 参与：陈、星熊、能天使、德克萨斯、阿米娅</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              龙门市区突发连环事件，企鹅物流与龙门近卫局被迫合作应对。罗德岛介入调查，在黑帮与商业势力交错的环境中寻找事实真相。陈与星熊面对城市秩序的灰色地带，博士在纷乱信息中判断关键线索，最终揭示龙门地下势力的真实动机。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>火蓝之心</h3>
+                <p>地点：汐斯塔 / 参与：阿米娅、能天使、天火、伊芙利特、锡兰</p>
+              </div>
+              <span class="tag alt">故事集</span>
+            </summary>
+            <p>
+              罗德岛在汐斯塔休整期间卷入火山灾害与城市运营的矛盾。海岸音乐节表象下隐藏城市权力斗争，干员们在轻松氛围与救援任务之间切换。阿米娅与博士在休假中依然保持警惕，最终协助当地解决危机，并加深了对泰拉各城邦治理差异的理解。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>沃伦姆德的薄暮</h3>
+                <p>地点：沃伦姆德 / 参与：白金、夜莺、闪灵、赫默、桑葚</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              罗德岛在沃伦姆德小镇遭遇感染者冲突升级，城市防御系统失控造成灾害。闪灵与夜莺试图安抚局势，感染者与非感染者之间的恐惧逐渐失去控制。博士在混乱中组织疏散，罗德岛最终发现幕后操纵的阴影，并在灾后反思医疗介入的极限。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>密林悍将归来</h3>
+                <p>地点：阿卡胡拉雨林 / 参与：艾雅法拉、伊桑、赫拉格、阿消</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              罗德岛在阿卡胡拉雨林遭遇当地部族冲突与外来势力干预。艾雅法拉与赫拉格等人深入雨林，帮助部族化解危机。博士在复杂地形中组织行动，罗德岛同时面对自然灾害与人类争端。故事展现了边境地区的生存法则与罗德岛行动的边界。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>风雪过境</h3>
+                <p>地点：谢拉格 / 参与：银灰、初雪、崖心、讯使</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              谢拉格的宗教与家族权力斗争牵动多方利益。银灰回到家族核心地带推动改革，初雪与崖心则在传统与现代之间寻找位置。罗德岛协助处理感染者问题，却也被卷入地方政治博弈。雪境危机让罗德岛看到宗教与家族制度的深层冲突。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>画中人</h3>
+                <p>地点：炎国·江亭 / 参与：夕、年、令、陈</p>
+              </div>
+              <span class="tag alt">故事集</span>
+            </summary>
+            <p>
+              炎国的神话与现实交织，夕与年等角色在画卷之中化出世界。罗德岛与龙门势力协助处理异常事件，发现古老信仰与现代治理的矛盾。博士在多重叙事中辨识真相，阿米娅则关注感染者的处境，故事以独特的叙事结构呈现炎国文化的厚重感。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>源石尘行动</h3>
+                <p>地点：哥伦比亚 / 参与：阿米娅、艾丽妮、Ash、小队成员</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              哥伦比亚实验设施发生事故，引发源石尘扩散与未知威胁。罗德岛与外来特遣队合作展开封锁与清理，科技组织的秘密计划逐步曝光。博士在跨组织合作中维持信息对等，阿米娅强调医疗优先原则。事件揭示了科技竞争与伦理界限的冲突。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>遗尘漫步</h3>
+                <p>地点：莱茵生命辖区 / 参与：萨莉亚、白面鸮、赫默、伊芙利特</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              莱茵生命内部危机爆发，萨莉亚与赫默在理念冲突中重新审视自身立场。白面鸮与伊芙利特作为实验项目的当事人被卷入权力争斗，罗德岛介入调查却必须面对科研伦理的灰色地带。博士在信息不对称的情况下协调干员行动，最终揭示实验事故背后的权力博弈。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>长夜临光</h3>
+                <p>地点：卡西米尔 / 参与：临光、闪灵、夜莺、玛莉娅</p>
+              </div>
+              <span class="tag alt">支线</span>
+            </summary>
+            <p>
+              卡西米尔骑士竞技重燃，临光的家族与商业势力的冲突再次激化。罗德岛在赛事背后进行医疗援助，见证资本控制下的骑士精神被扭曲。玛莉娅的成长与临光的决断推动事件走向高潮，罗德岛也重新理解“荣耀”与“生存”在现代都市中的含义。
+            </p>
+          </details>
+          <details class="chapter-card">
+            <summary>
+              <div>
+                <h3>将进酒</h3>
+                <p>地点：炎国·龙门外郡 / 参与：令、年、夕、谢拉格来客</p>
+              </div>
+              <span class="tag alt">故事集</span>
+            </summary>
+            <p>
+              炎国节庆背景下，各方势力围绕古老传说与政治关系展开角力。令作为关键角色引导事件发展，罗德岛在参与宴会与调查的过程中理解炎国文化中的权力秩序。故事以节庆仪式为切口，揭示炎国城邦背后的制度逻辑与潜在危机。
+            </p>
+          </details>
         </div>
-    </div>
-    <div class="footer-notes">⚡ 无线自动化 · 数据自动保存 · 建筑耗电: 普通150/矿机200/特殊300</div>
-</div>
+      </section>
 
-<script>
-(function() {
-    // ---------- 游戏配置 ----------
-    const STORAGE_KEY = 'baseGameSave';
+      <section class="section" id="races">
+        <div class="section-title">
+          <h2>种族信息</h2>
+          <p>整理泰拉主要种族，悬停卡片以查看文化背景与代表人物。</p>
+        </div>
+        <div class="grid race-grid">
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>萨卡兹 Sarkaz</h3>
+              <p>外貌：角、尾或骨刺特征明显</p>
+            </div>
+            <div class="race-more">
+              <p>文化：卡兹戴尔与流亡历史深刻，长期处于政治分裂与战争记忆中。</p>
+              <div class="race-ops">
+                <span>W</span><span>史尔特尔</span><span>泥岩</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>萨科塔 Sankta</h3>
+              <p>外貌：光环与翅膀特征</p>
+            </div>
+            <div class="race-more">
+              <p>文化：拉特兰信仰体系严密，纪律与神秘裁决机制贯穿社会。</p>
+              <div class="race-ops">
+                <span>能天使</span><span>送葬人</span><span>莫斯提马</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>鲁珀 Lupo</h3>
+              <p>外貌：狼耳与狼尾，体态敏捷</p>
+            </div>
+            <div class="race-more">
+              <p>文化：多分布于叙拉古，族群与家族关系紧密，重视契约。</p>
+              <div class="race-ops">
+                <span>德克萨斯</span><span>拉普兰德</span><span>红</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>菲林 Feline</h3>
+              <p>外貌：猫耳、尾部特征明显</p>
+            </div>
+            <div class="race-more">
+              <p>文化：分布广泛，既有龙门商界也有哥伦比亚企业精英。</p>
+              <div class="race-ops">
+                <span>黑</span><span>诗怀雅</span><span>慕斯</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>沃尔珀 Vulpo</h3>
+              <p>外貌：狐耳与尾巴，形态多样</p>
+            </div>
+            <div class="race-more">
+              <p>文化：分布广泛，常在城市中从事医药与商业工作。</p>
+              <div class="race-ops">
+                <span>安洁莉娜</span><span>调香师</span><span>铃兰</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>库兰塔 Kuranta</h3>
+              <p>外貌：马耳与尾部特征</p>
+            </div>
+            <div class="race-more">
+              <p>文化：卡西米尔骑士传统深厚，竞技与商业并存。</p>
+              <div class="race-ops">
+                <span>临光</span><span>白金</span><span>格拉尼</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>利贝里 Liberi</h3>
+              <p>外貌：羽翼或鸟类特征</p>
+            </div>
+            <div class="race-more">
+              <p>文化：重视教育与学术，常见于医学或行政岗位。</p>
+              <div class="race-ops">
+                <span>夜莺</span><span>白面鸮</span><span>赫默</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>阿戈尔 Aegir</h3>
+              <p>外貌：海洋生物特征明显</p>
+            </div>
+            <div class="race-more">
+              <p>文化：深海文明与科技体系发达，与陆地势力往来有限。</p>
+              <div class="race-ops">
+                <span>斯卡蒂</span><span>幽灵鲨</span><span>歌蕾蒂娅</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>卡特斯 Cautus</h3>
+              <p>外貌：兔耳与柔软尾部</p>
+            </div>
+            <div class="race-more">
+              <p>文化：多聚居于卡西米尔与雷姆必拓，社群感强。</p>
+              <div class="race-ops">
+                <span>阿米娅</span><span>安赛尔</span><span>克洛丝</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>佩洛 Perro</h3>
+              <p>外貌：犬耳、尾部特征</p>
+            </div>
+            <div class="race-more">
+              <p>文化：常见于边境守备与城市治安体系。</p>
+              <div class="race-ops">
+                <span>杜宾</span><span>斑点</span><span>米格鲁</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>杜林 Durin</h3>
+              <p>外貌：矮小体态与矿工装束</p>
+            </div>
+            <div class="race-more">
+              <p>文化：擅长矿业与工程技术，长期在地下城邦生活。</p>
+              <div class="race-ops">
+                <span>杜林</span><span>桃金娘</span><span>卡达</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>卡普里尼 Caprinae</h3>
+              <p>外貌：羊角或山羊特征</p>
+            </div>
+            <div class="race-more">
+              <p>文化：多见于高地与矿区，擅长术式与学术研究。</p>
+              <div class="race-ops">
+                <span>艾雅法拉</span><span>地灵</span><span>角峰</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>瓦伊凡 Vouivre</h3>
+              <p>外貌：龙角与鳞片纹理</p>
+            </div>
+            <div class="race-more">
+              <p>文化：多见于军事与工程部门，强调纪律与责任。</p>
+              <div class="race-ops">
+                <span>塞雷娅</span><span>雷蛇</span><span>香草</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>乌萨斯 Ursus</h3>
+              <p>外貌：熊耳与厚重体格</p>
+            </div>
+            <div class="race-more">
+              <p>文化：军国传统与严苛阶级制度并存，影响深远。</p>
+              <div class="race-ops">
+                <span>凛冬</span><span>真理</span><span>古米</span>
+              </div>
+            </div>
+          </article>
+          <article class="race-card">
+            <div class="race-basic">
+              <h3>扎拉克 Zalak</h3>
+              <p>外貌：鼠类特征，灵活小巧</p>
+            </div>
+            <div class="race-more">
+              <p>文化：擅长工程与后勤，多见于城市中层岗位。</p>
+              <div class="race-ops">
+                <span>砾</span><span>阿消</span><span>清道夫</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
 
-    // 所有物品列表 (按颜色分类)
-    const ITEMS = {
-        // 白色
-        '异铁碎片': 'white', '源岩': 'white', '破损装置': 'white', '酯原料': 'white', '双酮': 'white', '代糖': 'white',
-        // 绿色
-        '异铁': 'green', '固源岩': 'green', '装置': 'green', '聚酸酯': 'green', '酮凝集': 'green', '糖': 'green', '盐': 'green', '浆果': 'green', '浆果种子': 'green', '低级exp资料': 'green',
-        // 蓝色
-        '异铁组': 'blue', '固源岩组': 'blue', '全新装置': 'blue', '聚酸酯组': 'blue', '酮凝集组': 'blue', '糖组': 'blue', '转质盐组': 'blue', '凝胶': 'blue', '芽针': 'blue', '芽针种子': 'blue', '中级exp资料': 'blue',
-        // 紫色
-        '异铁块': 'purple', '提纯源岩': 'purple', '改量装置': 'purple', '聚酸酯块': 'purple', '酮阵列': 'purple', '糖聚块': 'purple', '转质盐聚块': 'purple', '聚合凝胶': 'purple', '合成石原矿': 'purple', '高级exp资料': 'purple',
-        // 金色
-        '合成石': 'gold'
-    };
-
-    // 配方库 (建筑类型, 最低等级, 名称, 输入, 输出, 耗时秒)
-    const RECIPES = [
-        // 制造站
-        { bid: '制造站', level: 1, name: '低级EXP', input: { '源岩':2, '双酮':1 }, output: { '低级exp资料':1 }, time: 10 },
-        { bid: '制造站', level: 1, name: '源岩→固源岩', input: { '源岩':5 }, output: { '固源岩':1 }, time: 8 },
-        { bid: '制造站', level: 2, name: '中级EXP', input: { '固源岩':2, '酮凝集':1 }, output: { '中级exp资料':1 }, time: 30 },
-        { bid: '制造站', level: 2, name: '固源岩→固源岩组', input: { '固源岩':3 }, output: { '固源岩组':1 }, time: 15 },
-        { bid: '制造站', level: 3, name: '高级EXP', input: { '固源岩组':2, '酮凝集组':1 }, output: { '高级exp资料':1 }, time: 90 },
-        { bid: '制造站', level: 3, name: '固源岩组→提纯源岩', input: { '固源岩组':3 }, output: { '提纯源岩':1 }, time: 30 },
-        // 加工站
-        { bid: '加工站', level: 1, name: '异铁碎片→破损装置', input: { '异铁碎片':3 }, output: { '破损装置':1 }, time: 6 },
-        { bid: '加工站', level: 1, name: '双酮→酮凝集', input: { '双酮':2 }, output: { '酮凝集':1 }, time: 5 },
-        { bid: '加工站', level: 2, name: '异铁→装置', input: { '异铁':3 }, output: { '装置':1 }, time: 10 },
-        { bid: '加工站', level: 2, name: '酮凝集→酮凝集组', input: { '酮凝集':3 }, output: { '酮凝集组':1 }, time: 12 },
-        { bid: '加工站', level: 3, name: '异铁组→全新装置', input: { '异铁组':3 }, output: { '全新装置':1 }, time: 20 },
-        { bid: '加工站', level: 3, name: '酮凝集组→酮阵列', input: { '酮凝集组':3 }, output: { '酮阵列':1 }, time: 25 },
-        { bid: '加工站', level: 4, name: '异铁块→改量装置', input: { '异铁块':2 }, output: { '改量装置':1 }, time: 40 },
-        // 贸易站
-        { bid: '贸易站', level: 1, name: '贸易异铁', input: { '双酮':3, '异铁碎片':3 }, output: { '异铁':1 }, time: 12 },
-        { bid: '贸易站', level: 2, name: '贸易异铁组', input: { '酮凝集':3, '异铁':3 }, output: { '异铁组':1 }, time: 20 },
-        { bid: '贸易站', level: 3, name: '贸易异铁块', input: { '酮凝集组':3, '异铁组':3 }, output: { '异铁块':1 }, time: 30 },
-        { bid: '贸易站', level: 4, name: '贸易合成石', input: { '酮阵列':3, '合成石原矿':10 }, output: { '合成石':10 }, time: 60 },
-        // 研究所
-        { bid: '研究所', level: 1, name: '糖+聚酸酯', input: { '代糖':3, '酯原料':3 }, output: { '糖':1, '聚酸酯':1 }, time: 10 },
-        { bid: '研究所', level: 2, name: '糖组+聚酸酯组', input: { '糖':3, '聚酸酯':3 }, output: { '糖组':1, '聚酸酯组':1 }, time: 18 },
-        { bid: '研究所', level: 2, name: '盐→转质盐组', input: { '盐':3 }, output: { '转质盐组':1 }, time: 12 },
-        { bid: '研究所', level: 3, name: '糖聚块+聚酸酯块', input: { '糖组':3, '聚酸酯组':3 }, output: { '糖聚块':1, '聚酸酯块':1 }, time: 30 },
-        { bid: '研究所', level: 3, name: '转质盐组→转质盐聚块', input: { '转质盐组':3 }, output: { '转质盐聚块':1 }, time: 25 },
-        // 采矿机 (无消耗，产出多种)
-        { bid: '采矿机', level: 1, name: '基础开采', input: { }, output: { '源岩':3, '异铁碎片':1, '代糖':2 }, time: 12 },
-        { bid: '采矿机', level: 2, name: '中级开采', input: { }, output: { '固源岩':3, '异铁':1, '糖':2 }, time: 15 },
-        { bid: '采矿机', level: 3, name: '高级开采', input: { }, output: { '固源岩组':3, '异铁组':1, '糖组':2 }, time: 20 },
-        // 化学采矿机
-        { bid: '化学采矿机', level: 1, name: '基础化学', input: { }, output: { '双酮':2, '酯原料':1 }, time: 10 },
-        { bid: '化学采矿机', level: 2, name: '中级化学', input: { }, output: { '酮凝集':2, '聚酸酯':1, '盐':1 }, time: 14 },
-        { bid: '化学采矿机', level: 3, name: '高级化学', input: { }, output: { '酮凝集组':2, '聚酸酯组':1, '转质盐组':1 }, time: 18 },
-        // 合成石采矿机 (消耗)
-        { bid: '合成石采矿机', level: 1, name: '合成石开采I', input: { '异铁':5 }, output: { '合成石':1 }, time: 20 },
-        { bid: '合成石采矿机', level: 2, name: '合成石开采II', input: { '异铁组':3 }, output: { '合成石':1 }, time: 18 },
-        { bid: '合成石采矿机', level: 3, name: '合成石开采III', input: { '异铁块':2 }, output: { '合成石':1 }, time: 16 },
-        // 合成石转质机
-        { bid: '合成石转质机', level: 1, name: '原矿转化I', input: { '转质盐组':5 }, output: { '合成石原矿':1 }, time: 25 },
-        { bid: '合成石转质机', level: 2, name: '原矿转化II', input: { '转质盐聚块':2 }, output: { '合成石原矿':1 }, time: 22 },
-        // 种植站
-        { bid: '种植站', level: 1, name: '种浆果', input: { '浆果种子':1 }, output: { '浆果':1 }, time: 15 },
-        { bid: '种植站', level: 1, name: '浆果采种', input: { '浆果':1 }, output: { '浆果种子':2 }, time: 8 },
-        { bid: '种植站', level: 2, name: '种芽针', input: { '芽针种子':1 }, output: { '芽针':1 }, time: 18 },
-        { bid: '种植站', level: 2, name: '芽针采种', input: { '芽针':1 }, output: { '芽针种子':2 }, time: 10 },
-        // 合成站
-        { bid: '合成站', level: 1, name: '凝胶合成', input: { '浆果':1 }, output: { '凝胶':1 }, time: 8 },
-        { bid: '合成站', level: 2, name: '芽针→凝胶', input: { '芽针':1 }, output: { '凝胶':2 }, time: 10 },
-        { bid: '合成站', level: 2, name: '聚合凝胶', input: { '凝胶':3 }, output: { '聚合凝胶':1 }, time: 18 },
-    ];
-
-    // 建筑类型对应基础耗电
-    const POWER_COST = { '制造站':150, '加工站':150, '贸易站':150, '研究所':150, '采矿机':200, '化学采矿机':200, '合成石采矿机':300, '合成石转质机':300, '种植站':150, '合成站':150, '发电站':0 };
-
-    // 升级所需材料与等级条件
-    const UPGRADE_REQ = {
-        '制造站': { 2: { level:10, mat:{'装置':5} }, 3: { level:20, mat:{'全新装置':5} } },
-        '加工站': { 2: { level:10, mat:{'固源岩':5} }, 3: { level:20, mat:{'固源岩组':5} }, 4: { level:40, mat:{'提纯源岩':5} } },
-        '贸易站': { 2: { level:10, mat:{'聚酸酯':5} }, 3: { level:20, mat:{'聚酸酯组':5} }, 4: { level:40, mat:{'聚酸酯块':5} } },
-        '研究所': { 2: { level:10, mat:{'酮凝集':5} }, 3: { level:20, mat:{'酮凝集组':5} } },
-        '采矿机': { 2: { level:15, mat:{'固源岩':5} }, 3: { level:25, mat:{'固源岩组':5} } },
-        '化学采矿机': { 2: { level:15, mat:{'异铁':5} }, 3: { level:25, mat:{'异铁组':5} } },
-        '合成石采矿机': { 2: { level:10, mat:{'糖组':5} }, 3: { level:20, mat:{'糖聚块':5} } },
-        '合成石转质机': { 2: { level:50, mat:{'聚合凝胶':5} } },
-        '种植站': { 2: { level:10, mat:{'糖组':5} } },
-        '合成站': { 2: { level:15, mat:{'酮凝集组':5} } },
-        '发电站': { 2: { level:10, mat:{'全新装置':5} }, 3: { level:20, mat:{'改量装置':5} } },
-    };
-
-    // 建造所需 (一级)
-    const BUILD_REQ = {
-        '制造站': { level:1, mat:{'破损装置':5} },
-        '加工站': { level:1, mat:{'源岩':5} },
-        '贸易站': { level:1, mat:{'酯原料':5} },
-        '研究所': { level:1, mat:{'双酮':5} },
-        '采矿机': { level:1, mat:{'源岩':5} },
-        '化学采矿机': { level:1, mat:{'异铁碎片':5} },
-        '合成石采矿机': { level:1, mat:{'糖':5} },
-        '合成石转质机': { level:35, mat:{'凝胶':5} },
-        '种植站': { level:1, mat:{'糖':5} },
-        '合成站': { level:1, mat:{'酮凝集':5} },
-        '发电站': { level:1, mat:{'装置':5} },
-    };
-
-    // 初始资源
-    const INIT_RESOURCES = {
-        '源岩':10, '异铁碎片':10, '双酮':10, '酯原料':10, '代糖':10, '破损装置':2, '装置':1, '糖':3, '酮凝集':3, '浆果种子':0, '芽针种子':0
-    };
-
-    // ---------- 游戏状态 ----------
-    let gameState = {
-        playerLevel: 1,
-        playerExp: 0,
-        resources: { ...INIT_RESOURCES, '合成石':0, '低级exp资料':0, '中级exp资料':0, '高级exp资料':0 },
-        buildings: [],
-        nextId: 100,
-        powerSupply: 1000, // 动态计算
-    };
-
-    // 初始化建筑 (开局)
-    function initBuildings() {
-        gameState.buildings = [
-            { id:1, type:'加工站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
-            { id:2, type:'制造站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
-            { id:3, type:'发电站', level:1, enabled:true, currentRecipe:null, progress:0, recipeIndex:-1 }, // 发电站无配方
-            { id:4, type:'发电站', level:1, enabled:true, currentRecipe:null, progress:0, recipeIndex:-1 },
-            { id:5, type:'采矿机', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
-            { id:6, type:'贸易站', level:1, enabled:true, currentRecipe:0, progress:0, recipeIndex:0 },
-        ];
-        gameState.nextId = 100;
-    }
-    if (!localStorage.getItem(STORAGE_KEY)) {
-        initBuildings();
-        // 种植站奖励 (开局无, 建造后给)
-    } else {
-        try { gameState = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { initBuildings(); }
-    }
-
-    // 辅助: 计算总供电/耗电
-    function recalcPower() {
-        let supply = 0;
-        for (let b of gameState.buildings) {
-            if (b.type === '发电站') {
-                if (b.level === 1) supply += 500;
-                else if (b.level === 2) supply += 700;
-                else if (b.level === 3) supply += 1000;
-            }
-        }
-        let usage = 0;
-        for (let b of gameState.buildings) {
-            if (b.type === '发电站') continue;
-            if (b.enabled) usage += POWER_COST[b.type] || 150;
-        }
-        gameState.powerSupply = supply;
-        return { supply, usage };
-    }
-
-    // 检查电量是否足够所有开启建筑工作
-    function powerOk() {
-        let { supply, usage } = recalcPower();
-        return usage <= supply;
-    }
-
-    // 获取建筑可用配方
-    function getRecipesForBuilding(b) {
-        if (b.type === '发电站') return [];
-        return RECIPES.filter(r => r.bid === b.type && r.level <= b.level);
-    }
-
-    // 尝试生产 tick (每秒调用)
-    function productionTick() {
-        if (!powerOk()) return; // 电量不足，所有暂停
-
-        for (let b of gameState.buildings) {
-            if (b.type === '发电站' || !b.enabled) continue;
-            let recipes = getRecipesForBuilding(b);
-            if (recipes.length === 0) continue;
-            let recipe = recipes[b.recipeIndex] || recipes[0];
-            if (!recipe) continue;
-            // 检查原料
-            let canCraft = true;
-            for (let [mat, need] of Object.entries(recipe.input)) {
-                if ((gameState.resources[mat] || 0) < need) { canCraft = false; break; }
-            }
-            if (!canCraft) continue; // 原料不足
-
-            // 增加进度
-            b.progress = (b.progress || 0) + 1;
-            if (b.progress >= recipe.time) {
-                // 扣除原料，添加产物
-                for (let [mat, need] of Object.entries(recipe.input)) {
-                    gameState.resources[mat] = (gameState.resources[mat] || 0) - need;
-                }
-                for (let [prod, qty] of Object.entries(recipe.output)) {
-                    gameState.resources[prod] = (gameState.resources[prod] || 0) + qty;
-                }
-                b.progress = 0;
-            }
-        }
-        saveGame();
-        renderAll();
-    }
-
-    // 升级建筑
-    function upgradeBuilding(b) {
-        let nextLevel = b.level + 1;
-        let req = UPGRADE_REQ[b.type]?.[nextLevel];
-        if (!req) return false;
-        if (gameState.playerLevel < req.level) { alert('玩家等级不足'); return false; }
-        for (let [mat, qty] of Object.entries(req.mat)) {
-            if ((gameState.resources[mat] || 0) < qty) { alert('材料不足'); return false; }
-        }
-        for (let [mat, qty] of Object.entries(req.mat)) gameState.resources[mat] -= qty;
-        b.level = nextLevel;
-        if (b.type === '种植站' && nextLevel === 2) {
-            gameState.resources['芽针种子'] = (gameState.resources['芽针种子'] || 0) + 3; // 奖励
-        }
-        saveGame(); renderAll(); return true;
-    }
-
-    // 建造新建筑
-    function buildNew(type) {
-        let req = BUILD_REQ[type];
-        if (!req) return;
-        if (gameState.playerLevel < req.level) { alert('等级不足'); return; }
-        for (let [mat, qty] of Object.entries(req.mat)) {
-            if ((gameState.resources[mat] || 0) < qty) { alert('材料不足'); return; }
-        }
-        for (let [mat, qty] of Object.entries(req.mat)) gameState.resources[mat] -= qty;
-        let newB = {
-            id: gameState.nextId++,
-            type: type,
-            level: 1,
-            enabled: true,
-            currentRecipe: 0,
-            progress: 0,
-            recipeIndex: 0,
-        };
-        if (type === '种植站') {
-            gameState.resources['浆果种子'] = (gameState.resources['浆果种子'] || 0) + 3; // 一级奖励
-        }
-        gameState.buildings.push(newB);
-        saveGame(); renderAll();
-    }
-
-    // 使用exp资料
-    function useExpItem(item) {
-        let gain = 0;
-        if (item === '低级exp资料') gain = 10;
-        else if (item === '中级exp资料') gain = 50;
-        else if (item === '高级exp资料') gain = 200;
-        else return;
-        if (gameState.resources[item] > 0) {
-            gameState.resources[item]--;
-            gameState.playerExp = (gameState.playerExp || 0) + gain;
-            // 简单升级：每100exp一级
-            let newLevel = Math.floor(gameState.playerExp / 100) + 1;
-            if (newLevel > gameState.playerLevel) gameState.playerLevel = newLevel;
-            saveGame(); renderAll();
-        }
-    }
-
-    // 保存
-    function saveGame() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-    }
-
-    // ---------- 渲染 ----------
-    function renderResources() {
-        document.getElementById('expDisplay').innerText = gameState.playerExp;
-        document.getElementById('synthStoneDisplay').innerText = gameState.resources['合成石'] || 0;
-        document.getElementById('playerLevel').innerText = gameState.playerLevel;
-        let { supply, usage } = recalcPower();
-        document.getElementById('powerSupply').innerText = supply;
-        document.getElementById('powerUsage').innerText = usage;
-        document.getElementById('powerDisplay').innerText = `${usage}/${supply}`;
-    }
-
-    function renderStorage() {
-        let grid = document.getElementById('storageGrid');
-        let html = '';
-        for (let [name, color] of Object.entries(ITEMS)) {
-            let qty = gameState.resources[name] || 0;
-            let useBtn = (name.includes('exp资料')) ? `<button class="item-use" data-item="${name}">使用</button>` : '';
-            html += `<div class="item-card item-${color}"><div class="item-name">${name}</div><div class="item-qty">${qty}</div>${useBtn}</div>`;
-        }
-        grid.innerHTML = html;
-        // 绑定使用事件
-        document.querySelectorAll('.item-use').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let item = e.target.dataset.item;
-                useExpItem(item);
-            });
-        });
-    }
-
-    function renderProduction() {
-        let container = document.getElementById('buildingsContainer');
-        let html = '';
-        for (let b of gameState.buildings) {
-            let recipes = getRecipesForBuilding(b);
-            let recipeOptions = recipes.map((r, idx) => `<option value="${idx}" ${b.recipeIndex===idx?'selected':''}>${r.name} (${r.time}s)</option>`).join('');
-            let progressWidth = (b.progress || 0) / (recipes[b.recipeIndex]?.time || 1) * 100;
-            let switchClass = b.enabled ? 'switch on' : 'switch';
-            let powerCost = POWER_COST[b.type] || 0;
-            html += `<div class="building-card" data-id="${b.id}">
-                <div class="building-info">
-                    <div class="building-name">${b.type}</div>
-                    <div class="building-level">Lv.${b.level}</div>
-                    <div class="power-cost">⚡${powerCost}</div>
-                </div>
-                <div class="building-switch">
-                    <div class="${switchClass}" data-id="${b.id}" data-action="toggle"></div>
-                    <span style="color:white">${b.enabled?'运行中':'关闭'}</span>
-                </div>
-                ${b.type !== '发电站' ? `
-                <select class="recipe-select" data-id="${b.id}" data-action="recipe">${recipeOptions}</select>
-                <div class="progress-bar"><div class="progress-fill" style="width:${progressWidth}%"></div></div>
-                ` : '<div style="width:200px"></div>'}
-                <button class="btn" data-id="${b.id}" data-action="upgrade">升级</button>
-            </div>`;
-        }
-        container.innerHTML = html;
-        // 事件绑定
-        document.querySelectorAll('[data-action="toggle"]').forEach(el => {
-            el.addEventListener('click', (e) => {
-                let id = e.target.dataset.id;
-                let b = gameState.buildings.find(b => b.id == id);
-                if (b) { b.enabled = !b.enabled; saveGame(); renderAll(); }
-            });
-        });
-        document.querySelectorAll('[data-action="recipe"]').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                let id = e.target.dataset.id;
-                let b = gameState.buildings.find(b => b.id == id);
-                if (b) { b.recipeIndex = parseInt(e.target.value); b.progress = 0; saveGame(); renderAll(); }
-            });
-        });
-        document.querySelectorAll('[data-action="upgrade"]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                let id = e.target.dataset.id;
-                let b = gameState.buildings.find(b => b.id == id);
-                if (b) upgradeBuilding(b);
-            });
-        });
-    }
-
-    function renderAll() {
-        renderResources();
-        if (document.getElementById('productionPage').style.display !== 'none') renderProduction();
-        if (document.getElementById('storagePage').style.display !== 'none') renderStorage();
-    }
-
-    // 分页
-    document.getElementById('tabProduction').addEventListener('click', ()=>{
-        document.getElementById('tabProduction').classList.add('active');
-        document.getElementById('tabStorage').classList.remove('active');
-        document.getElementById('productionPage').style.display = 'block';
-        document.getElementById('storagePage').style.display = 'none';
-        renderProduction();
-    });
-    document.getElementById('tabStorage').addEventListener('click', ()=>{
-        document.getElementById('tabStorage').classList.add('active');
-        document.getElementById('tabProduction').classList.remove('active');
-        document.getElementById('storagePage').style.display = 'block';
-        document.getElementById('productionPage').style.display = 'none';
-        renderStorage();
-    });
-
-    // 建造菜单
-    document.getElementById('openBuildMenu').addEventListener('click', ()=>{
-        document.getElementById('buildSelector').style.display = 'block';
-    });
-    document.getElementById('cancelBuild').addEventListener('click', ()=>{
-        document.getElementById('buildSelector').style.display = 'none';
-    });
-    document.getElementById('confirmBuild').addEventListener('click', ()=>{
-        let type = document.getElementById('buildingTypeSelect').value;
-        buildNew(type);
-        document.getElementById('buildSelector').style.display = 'none';
-    });
-
-    // 每秒循环
-    setInterval(() => { productionTick(); }, 1000);
-    // 初始渲染
-    renderAll();
-    saveGame();
-})();
-</script>
-</body>
+      <section class="section" id="mechanics">
+        <div class="section-title">
+          <h2>游戏机制</h2>
+          <p>核心战斗、常驻玩法与活动机制概览。</p>
+        </div>
+        <div class="grid mechanism-grid">
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-chess-king"></i></div>
+            <h3>主线战斗</h3>
+            <p>说明：推进剧情关卡，使用部署与技能策略完成目标。</p>
+            <p>参与方式：主界面作战入口按章节解锁。</p>
+            <p>奖励类型：经验、材料、合成玉、剧情进度。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+            <h3>剿灭作战</h3>
+            <p>说明：长时间防线守卫，击杀指定数量敌人。</p>
+            <p>参与方式：常驻周常作战入口。</p>
+            <p>奖励类型：合成玉、作战记录、信用。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3>危机合约</h3>
+            <p>说明：通过合约提高难度获取更高奖励。</p>
+            <p>参与方式：限时开放主题赛季。</p>
+            <p>奖励类型：合约赏金、限定外观。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-compass-drafting"></i></div>
+            <h3>集成战略</h3>
+            <p>说明：类Roguelike探索，随机地图与队伍构筑。</p>
+            <p>参与方式：常驻模式，如“傀影与猩红孤钻”。</p>
+            <p>奖励类型：纪念家具、干员成长资源。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-leaf"></i></div>
+            <h3>生息演算</h3>
+            <p>说明：长期经营与战术事件结合的沙盒模式。</p>
+            <p>参与方式：常驻或周期性开放。</p>
+            <p>奖励类型：干员养成素材、专属外观。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-bunk-bed"></i></div>
+            <h3>保全派驻</h3>
+            <p>说明：多小队轮换作战，强调干员续航。</p>
+            <p>参与方式：常驻挑战入口。</p>
+            <p>奖励类型：合约材料、奖励代币。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon"><i class="fa-solid fa-industry"></i></div>
+            <h3>基建系统</h3>
+            <p>说明：宿舍、制造站、贸易站等经营玩法。</p>
+            <p>参与方式：主界面基建入口。</p>
+            <p>奖励类型：龙门币、赤金、信赖度。</p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <p>本页面为明日方舟主题静态页面，致敬罗德岛与PRTS风格。</p>
+    </footer>
+    <script src="script.js"></script>
+  </body>
 </html>
