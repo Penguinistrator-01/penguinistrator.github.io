@@ -456,7 +456,7 @@ const searchData = [
     relevance: 4,
     badge: "高赞"
   }
-  }
+];
 
 const normalize = (value) => value.trim().toLowerCase();
 
